@@ -1397,9 +1397,9 @@ ipcMain.handle('desktop:open-release-page', async (_event, releaseUrl) => {
 async function createWindow() {
   const restoreResult = isWindowsNsisInstalledApp() ? restorePackagedRuntimeStateFromBackup() : null;
   initLogging();
-  const restoreFailed = Boolean(restoreResult && (restoreResult.failed.length || restoreResult.skipped.length));
+  const restoreFailed = Boolean(restoreResult && restoreResult.failed.length);
   const restoreIssueDetails = restoreResult
-    ? restoreResult.failed.concat(restoreResult.skipped).join('；')
+    ? restoreResult.failed.join('；')
     : '';
   const restoreErrorMessage = restoreFailed
     ? `上次更新安装未完成或恢复运行时文件失败，已保留备份目录 ${restoreResult.backupRoot}，请确认后手动恢复并重启应用。明细：${restoreIssueDetails}`

@@ -1,6 +1,7 @@
 param(
   [string]$DistDir = '',
-  [string]$ReleaseTag = ''
+  [string]$ReleaseTag = '',
+  [string]$ReleaseAssetsDir = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -68,14 +69,34 @@ if (-not $setupFiles) {
   throw 'No *Setup*.exe found in dist (NSIS installer is required).'
 }
 
-$installerFiles = Get-ChildItem -Path $distDirPath -Filter 'daily-stock-analysis-windows-installer-*.exe' -File -ErrorAction SilentlyContinue
-if (-not $installerFiles) {
-  throw 'No daily-stock-analysis-windows-installer-*.exe found in dist; expected release attachment is missing.'
-}
-
 $blockmapFiles = Get-ChildItem -Path $distDirPath -Filter '*.blockmap' -File -ErrorAction SilentlyContinue
 if (-not $blockmapFiles) {
   throw 'No *.blockmap found in dist; updater metadata may be incomplete.'
+}
+
+$installerFiles = @()
+$releaseAssetsDirPath = ''
+$releaseAssetsDirWasExplicit = -not [string]::IsNullOrWhiteSpace($ReleaseAssetsDir)
+
+if ($releaseAssetsDirWasExplicit) {
+  $releaseAssetsDirPath = (Resolve-Path $ReleaseAssetsDir -ErrorAction SilentlyContinue)?.Path
+  if (-not $releaseAssetsDirPath) {
+    throw "Release assets directory not found: $ReleaseAssetsDir"
+  }
+} elseif ((Split-Path -Path $distDirPath -Leaf) -eq 'release-assets') {
+  $releaseAssetsDirPath = $distDirPath
+} else {
+  $defaultReleaseAssetsDir = Join-Path $distDirPath 'release-assets'
+  $releaseAssetsDirPath = (Resolve-Path $defaultReleaseAssetsDir -ErrorAction SilentlyContinue)?.Path
+}
+
+if ($releaseAssetsDirPath) {
+  $installerFiles = Get-ChildItem -Path $releaseAssetsDirPath -Filter 'daily-stock-analysis-windows-installer-*.exe' -File -ErrorAction SilentlyContinue
+  if (-not $installerFiles) {
+    throw "No daily-stock-analysis-windows-installer-*.exe found in release assets: $releaseAssetsDirPath"
+  }
+} else {
+  Write-Host "[check] release attachment alias check skipped: run after release assets are prepared or pass -ReleaseAssetsDir."
 }
 
 Write-Host "[check] dist: $distDirPath"
@@ -83,8 +104,11 @@ Write-Host "[check] latest.yml version: $normalizedLatestVersion"
 Write-Host "[check] expected release version: $normalizedReleaseTag"
 Write-Host "[check] NSIS installers (Setup):"
 $setupFiles | ForEach-Object { Write-Host "[found] $($_.Name)" }
-Write-Host "[check] installer aliases:"
-$installerFiles | ForEach-Object { Write-Host "[found] $($_.Name)" }
+if ($installerFiles) {
+  Write-Host "[check] release assets: $releaseAssetsDirPath"
+  Write-Host "[check] installer aliases:"
+  $installerFiles | ForEach-Object { Write-Host "[found] $($_.Name)" }
+}
 Write-Host "[check] blockmaps:"
 $blockmapFiles | ForEach-Object { Write-Host "[found] $($_.Name)" }
 

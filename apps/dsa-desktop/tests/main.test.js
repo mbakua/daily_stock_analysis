@@ -519,6 +519,8 @@ test('createWindow startup path does not throw ReferenceError after restore resu
   let updateCheckRequested = false;
   const originalResourcesPathDescriptor = Object.getOwnPropertyDescriptor(process, 'resourcesPath');
   const resourcesPath = path.join(tempRoot, 'resources');
+  const backupRoot = path.join(userDataDir, '.dsa-desktop-update-backup');
+  const manifestPath = path.join(backupRoot, 'runtime-state.json');
 
   function fakeBrowserWindow() {
     return {
@@ -606,9 +608,12 @@ test('createWindow startup path does not throw ReferenceError after restore resu
 
   fs.mkdirSync(appDir, { recursive: true });
   fs.mkdirSync(userDataDir, { recursive: true });
+  fs.mkdirSync(backupRoot, { recursive: true });
   fs.mkdirSync(path.join(resourcesPath, 'backend', 'stock_analysis'), { recursive: true });
   fs.writeFileSync(exePath, '');
   fs.writeFileSync(uninstallPath, '');
+  fs.writeFileSync(path.join(backupRoot, '.env'), 'stale-backup-env\n', 'utf-8');
+  fs.writeFileSync(manifestPath, JSON.stringify({ appVersion: '3.12.0', files: ['.env'] }), 'utf-8');
   fs.writeFileSync(path.join(resourcesPath, 'backend', 'stock_analysis', 'stock_analysis.exe'), '');
 
   const mainModule = loadMainModule(t, {
@@ -651,6 +656,10 @@ test('createWindow startup path does not throw ReferenceError after restore resu
   assert.equal(loadedUrls.length >= 1, true);
   assert.equal(updateCheckRequested, true);
   assert.equal(startupError, undefined);
+  assert.equal(fs.existsSync(backupRoot), false);
+  const updateState = await mainModule.__getIpcMainHandler('desktop:get-update-state')();
+  assert.notEqual(updateState.status, mainModule.UPDATE_STATUS.ERROR);
+  assert.equal(updateState.updateMode, mainModule.UPDATE_MODE.AUTO);
 
   t.after(() => {
     if (originalResourcesPathDescriptor) {
