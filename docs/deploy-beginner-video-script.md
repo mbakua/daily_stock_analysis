@@ -178,7 +178,7 @@ docker-compose -f ./docker/docker-compose.yml logs -f --tail=120
 #### 症状 3：端口访问失败
 
 ```bash
-docker-compose -f ./docker/docker-compose.yml exec server ss -lntp | grep ${API_PORT:-8000}
+docker-compose -f ./docker/docker-compose.yml exec server sh -lc "curl -sS -o /dev/null -w 'HTTP %{http_code}\n' http://127.0.0.1:${API_PORT:-8000}/"
 sudo ufw status
 ```
 常见是 8000 没放行或进程未监听。
@@ -219,4 +219,3 @@ sudo ufw status
 - [ ] 可访问 `http://IP:8000`  
 - [ ] `python main.py --no-notify` 在容器内能单次执行通过  
 - [ ] 至少出现一次成功报告/日志完成记录  
-
