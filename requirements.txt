@@ -28,6 +28,7 @@ beautifulsoup4==4.12.3
 lxml==5.2.1
 
 # Notifications
+# Note: smtplib is built into Python stdlib, smtplib2 is a drop-in wrapper
 smtplib2==0.2.1
 
 # Configuration management
@@ -47,3 +48,6 @@ pytest-cov==5.0.0
 # Code quality
 flake8==7.0.0
 black==24.4.0
+
+# Personal additions
+jupyter==1.0.0  # for interactive exploration and experimentation
